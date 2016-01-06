@@ -1,9 +1,9 @@
 /**
  * \file
  *
- * \brief SAM4S-EK board init.
+ * \brief Spi Master configuration.
  *
- * Copyright (c) 2011 - 2013 Atmel Corporation. All rights reserved.
+ * Copyright (c) 2011 Atmel Corporation. All rights reserved.
  *
  * \asf_license_start
  *
@@ -41,25 +41,24 @@
  *
  */
 
-#include "compiler.h"
-#include "board.h"
-#include "conf_board.h"
+#ifndef CONF_SPI_MASTER_H_INCLUDED
+#define CONF_SPI_MASTER_H_INCLUDED
 
-void board_init(void)
-{
-#ifndef CONF_BOARD_KEEP_WATCHDOG_AT_INIT
-	/* Disable the watchdog */
-	WDT->WDT_MR = WDT_MR_WDDIS;
-#endif
+/* Possibility to change low-level configurations here */
 
-#ifdef CONF_BOARD_LEDS
-	pio_configure(PINS_LED0_PIO, PINS_LED0_TYPE, PINS_LED0_MASK, PINS_LED0_ATTR);
-	pio_configure(PINS_LED1_PIO, PINS_LED1_TYPE, PINS_LED1_MASK, PINS_LED1_ATTR);
+//! Default Config Spi Master Delay BCS
+#define CONFIG_SPI_MASTER_DELAY_BCS            0
 
-#endif
+//! Default Config Spi Master Bits per Transfer Definition
+#define CONFIG_SPI_MASTER_BITS_PER_TRANSFER    8
 
-#ifdef CONF_BOARD_UART_CONSOLE
-	pio_configure(PINS_UART0_PIO, PINS_UART0_TYPE, PINS_UART0_MASK, PINS_UART0_ATTR);
-#endif
+//! Default Config Spi Master Delay BCT
+#define CONFIG_SPI_MASTER_DELAY_BCT            0
 
-}
+//! Default Config Spi Master Delay BS
+#define CONFIG_SPI_MASTER_DELAY_BS             0
+
+//! Default Config Spi Master Dummy Field
+#define CONFIG_SPI_MASTER_DUMMY                0xFF
+
+#endif /* CONF_SPI_MASTER_H_INCLUDED */

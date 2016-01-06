@@ -1,9 +1,9 @@
 /**
  * \file
  *
- * \brief SAM4S-EK board init.
+ * \brief ARM functions for busy-wait delay loops
  *
- * Copyright (c) 2011 - 2013 Atmel Corporation. All rights reserved.
+ * Copyright (c) 2012-2015 Atmel Corporation. All rights reserved.
  *
  * \asf_license_start
  *
@@ -40,26 +40,22 @@
  * \asf_license_stop
  *
  */
+/*
+ * Support and FAQ: visit <a href="http://www.atmel.com/design-support/">Atmel Support</a>
+ */
 
-#include "compiler.h"
-#include "board.h"
-#include "conf_board.h"
+#include "cycle_counter.h"
 
-void board_init(void)
+// Delay loop is put to SRAM so that FWS will not affect delay time
+OPTIMIZE_HIGH
+RAMFUNC
+void portable_delay_cycles(unsigned long n)
 {
-#ifndef CONF_BOARD_KEEP_WATCHDOG_AT_INIT
-	/* Disable the watchdog */
-	WDT->WDT_MR = WDT_MR_WDDIS;
-#endif
+	UNUSED(n);
 
-#ifdef CONF_BOARD_LEDS
-	pio_configure(PINS_LED0_PIO, PINS_LED0_TYPE, PINS_LED0_MASK, PINS_LED0_ATTR);
-	pio_configure(PINS_LED1_PIO, PINS_LED1_TYPE, PINS_LED1_MASK, PINS_LED1_ATTR);
-
-#endif
-
-#ifdef CONF_BOARD_UART_CONSOLE
-	pio_configure(PINS_UART0_PIO, PINS_UART0_TYPE, PINS_UART0_MASK, PINS_UART0_ATTR);
-#endif
-
+	__asm (
+		"loop: DMB	\n"
+		"SUBS R0, R0, #1  \n"
+		"BNE.N loop         "
+	);
 }

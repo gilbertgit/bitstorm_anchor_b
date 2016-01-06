@@ -1,9 +1,9 @@
 /**
  * \file
  *
- * \brief SAM4S-EK board init.
+ * \brief Flash Program example configuration.
  *
- * Copyright (c) 2011 - 2013 Atmel Corporation. All rights reserved.
+ * Copyright (c) 2012-2015 Atmel Corporation. All rights reserved.
  *
  * \asf_license_start
  *
@@ -40,26 +40,14 @@
  * \asf_license_stop
  *
  */
+/*
+ * Support and FAQ: visit <a href="http://www.atmel.com/design-support/">Atmel Support</a>
+ */
 
-#include "compiler.h"
-#include "board.h"
-#include "conf_board.h"
+#ifndef CONF_EXAMPLE_H
+#define CONF_EXAMPLE_H
 
-void board_init(void)
-{
-#ifndef CONF_BOARD_KEEP_WATCHDOG_AT_INIT
-	/* Disable the watchdog */
-	WDT->WDT_MR = WDT_MR_WDDIS;
-#endif
+/* Test page start address. */
+#define TEST_PAGE_ADDRESS (IFLASH_ADDR + IFLASH_SIZE - IFLASH_PAGE_SIZE * 4)
 
-#ifdef CONF_BOARD_LEDS
-	pio_configure(PINS_LED0_PIO, PINS_LED0_TYPE, PINS_LED0_MASK, PINS_LED0_ATTR);
-	pio_configure(PINS_LED1_PIO, PINS_LED1_TYPE, PINS_LED1_MASK, PINS_LED1_ATTR);
-
-#endif
-
-#ifdef CONF_BOARD_UART_CONSOLE
-	pio_configure(PINS_UART0_PIO, PINS_UART0_TYPE, PINS_UART0_MASK, PINS_UART0_ATTR);
-#endif
-
-}
+#endif /* CONF_EXAMPLE_H */

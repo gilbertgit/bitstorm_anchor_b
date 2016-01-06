@@ -1,7 +1,7 @@
 /**
  * \file
  *
- * \brief SAM4S-EK board init.
+ * \brief Peripheral DMA Controller (PDC) driver for SAM.
  *
  * Copyright (c) 2011 - 2013 Atmel Corporation. All rights reserved.
  *
@@ -41,25 +41,60 @@
  *
  */
 
+#ifndef PDC_H_INCLUDED
+#define PDC_H_INCLUDED
+
 #include "compiler.h"
-#include "board.h"
-#include "conf_board.h"
 
-void board_init(void)
-{
-#ifndef CONF_BOARD_KEEP_WATCHDOG_AT_INIT
-	/* Disable the watchdog */
-	WDT->WDT_MR = WDT_MR_WDDIS;
+/// @cond 0
+/**INDENT-OFF**/
+#ifdef __cplusplus
+extern "C" {
 #endif
+/**INDENT-ON**/
+/// @endcond
 
-#ifdef CONF_BOARD_LEDS
-	pio_configure(PINS_LED0_PIO, PINS_LED0_TYPE, PINS_LED0_MASK, PINS_LED0_ATTR);
-	pio_configure(PINS_LED1_PIO, PINS_LED1_TYPE, PINS_LED1_MASK, PINS_LED1_ATTR);
+/*! \brief PDC data packet for transfer */
+typedef struct pdc_packet {
+	/** \brief Address for PDC transfer packet.
+	 *  The pointer to packet data start address. For pointer or next pointer
+	 *  register (_PR).
+	 */
+	uint32_t ul_addr;
+	/** \brief PDC transfer packet size.
+	 *  Size for counter or next counter register (_CR). The max value is
+	 *  0xffff.
+	 *  The unit of size is based on peripheral data width, that is, data
+	 *  width that each time the peripheral transfers.
+	 *  E.g., size of PDC for USART is in number of bytes, but size of PDC
+	 *  for 16 bit SSC is in number of 16 bit word.
+	 */
+	uint32_t ul_size;
+} pdc_packet_t;
 
-#endif
+void pdc_tx_init(Pdc *p_pdc, pdc_packet_t *p_packet,
+		pdc_packet_t *p_next_packet);
+void pdc_rx_init(Pdc *p_pdc, pdc_packet_t *p_packet,
+		pdc_packet_t *p_next_packet);
+void pdc_rx_clear_cnt(Pdc *p_pdc);
+void pdc_enable_transfer(Pdc *p_pdc, uint32_t ul_controls);
+void pdc_disable_transfer(Pdc *p_pdc, uint32_t ul_controls);
+uint32_t pdc_read_status(Pdc *p_pdc);
+uint32_t pdc_read_rx_ptr(Pdc *p_pdc);
+uint32_t pdc_read_rx_counter(Pdc *p_pdc);
+uint32_t pdc_read_tx_ptr(Pdc *p_pdc);
+uint32_t pdc_read_tx_counter(Pdc *p_pdc);
+uint32_t pdc_read_rx_next_ptr(Pdc *p_pdc);
+uint32_t pdc_read_rx_next_counter(Pdc *p_pdc);
+uint32_t pdc_read_tx_next_ptr(Pdc *p_pdc);
+uint32_t pdc_read_tx_next_counter(Pdc *p_pdc);
 
-#ifdef CONF_BOARD_UART_CONSOLE
-	pio_configure(PINS_UART0_PIO, PINS_UART0_TYPE, PINS_UART0_MASK, PINS_UART0_ATTR);
-#endif
-
+/// @cond 0
+/**INDENT-OFF**/
+#ifdef __cplusplus
 }
+#endif
+/**INDENT-ON**/
+/// @endcond
+
+#endif /* PDC_H_INCLUDED */

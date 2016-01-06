@@ -56,6 +56,13 @@
 #include <compiler.h>
 #include <status_codes.h>
 
+#include <delay.h>
+// From module: EEFC - Enhanced Embedded Flash Controller
+#include <efc.h>
+
+// From module: Flash - SAM Flash Service API
+#include <flash_efc.h>
+
 // From module: Part identification macros
 #include <parts.h>
 
@@ -71,6 +78,7 @@
 #include <semphr.h>
 #include <task.h>
 #include <timers.h>
+#include <sysclk.h>
 
 // From module: Generic board support
 #include <board.h>
@@ -103,5 +111,8 @@
 
 // From module: Standard serial I/O (stdio) - SAM implementation
 #include <stdio_serial.h>
+
+#include <freertos_spi_master.h>
+#include <spi.h>
 
 #endif // ASF_H
