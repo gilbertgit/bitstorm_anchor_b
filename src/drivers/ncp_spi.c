@@ -8,29 +8,42 @@
 #include "asf.h"
 #include "ncp_spi.h"
 
+void spi_master_init_2(Spi *p_spi)
+{
+	spi_enable_clock(p_spi);
+	spi_reset(p_spi);
+	spi_set_master_mode(p_spi);
+	spi_disable_mode_fault_detect(p_spi);
+	spi_disable_loopback(p_spi);
+	spi_set_peripheral_chip_select_value(p_spi, NCP_CHIP_SELECT_VALUE);
+	spi_set_fixed_peripheral_select(p_spi);
+	spi_disable_peripheral_select_decode(p_spi);
+	spi_set_delay_between_chip_select(p_spi, 0);
+}
+
 void * SPI_Configuration(void) {
 
 	freertos_spi_if spi_if;
-
-	const freertos_peripheral_options_t driver_options = {
-	/* No receive buffer pointer needed for SPI */
-	NULL,
-
-	/* No receive buffer size needed for SPI */
-	0,
-
-	/* Cortex-M4 priority */
-	configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY,
-
-	/* Operation mode - MASTER */
-	SPI_MASTER,
-
-	/* Blocking (not async) */
-	(USE_TX_ACCESS_MUTEX | USE_RX_ACCESS_MUTEX | WAIT_TX_COMPLETE | WAIT_RX_COMPLETE) };
-
-	spi_if = freertos_spi_master_init(NCP_SPI, &driver_options);
-
-	if (spi_if != NULL) {
+//
+//	const freertos_peripheral_options_t driver_options = {
+//	/* No receive buffer pointer needed for SPI */
+//	NULL,
+//
+//	/* No receive buffer size needed for SPI */
+//	0,
+//
+//	/* Cortex-M4 priority */
+//	configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY,
+//
+//	/* Operation mode - MASTER */
+//	SPI_MASTER,
+//
+//	/* Blocking (not async) */
+//	(USE_TX_ACCESS_MUTEX | USE_RX_ACCESS_MUTEX | WAIT_TX_COMPLETE | WAIT_RX_COMPLETE) };
+//
+//	spi_if = freertos_spi_master_init(NCP_SPI, &driver_options);
+//
+//	if (spi_if != NULL) {
 		pio_configure_pin(PIO_PA12_IDX, PIO_PERIPH_A);	// MISO
 		pio_configure_pin(PIO_PA13_IDX, PIO_PERIPH_A);	// MOSI
 		pio_configure_pin(PIO_PA14_IDX, PIO_PERIPH_A);	// SPCK
@@ -39,18 +52,21 @@ void * SPI_Configuration(void) {
 		pmc_enable_periph_clk(ID_SPI);
 
 		spi_disable(NCP_SPI);
+
+		spi_master_init_2(NCP_SPI);
+
 		spi_set_clock_polarity(NCP_SPI, NCP_CHIP_SELECT, NCP_CLOCK_POLARITY);
 		spi_set_clock_phase(NCP_SPI, NCP_CHIP_SELECT, NCP_CLOCK_PHASE);
 		spi_set_baudrate_div(NCP_SPI, NCP_CHIP_SELECT, (sysclk_get_cpu_hz() / NCP_SPI_BAUD_SLOW));
 		//spi_set_baudrate_div(NCP_SPI, NCP_CHIP_SELECT, 20);
 		spi_set_transfer_delay(NCP_SPI, NCP_CHIP_SELECT, NCP_DELAY_BEFORE,		NCP_DELAY_BETWEEN);
 		spi_configure_cs_behavior(NCP_SPI, NCP_CHIP_SELECT, SPI_CS_KEEP_LOW);
-
+		spi_set_bits_per_transfer(NCP_SPI, NCP_CHIP_SELECT, 0);
 		//spi_configure_cs_behavior(NCP_SPI, NCP_CHIP_SELECT, SPI_CS_RISE_NO_TX);
 		spi_set_peripheral_chip_select_value(NCP_SPI, NCP_CHIP_SELECT_VALUE);
 
 		spi_enable(NCP_SPI);
-	}
+
 
 	return spi_if;
 }

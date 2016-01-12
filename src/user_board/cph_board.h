@@ -22,7 +22,7 @@
 #define NCP_DELAY_BEFORE			0x00
 #define NCP_DELAY_BETWEEN			0x10
 #define NCP_CLOCK_POLARITY			0
-#define NCP_CLOCK_PHASE				0
+#define NCP_CLOCK_PHASE				1
 
 /** Board oscillator settings */
 #define BOARD_FREQ_SLCK_XTAL        (32768U)
