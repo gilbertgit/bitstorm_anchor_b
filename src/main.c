@@ -9,7 +9,7 @@
 #include "string.h"
 #include "ezsp_api.h"
 
-#define BUFFER_MAX		20
+#define BUFFER_MAX		50
 #define BUFFER_SIZE     (BUFFER_MAX + 1)
 
 #define TASK_MONITOR_STACK_SIZE            (2048/sizeof(portSTACK_TYPE))
@@ -26,8 +26,10 @@ static bool is_awaiting_resp = false;
 static bool is_ready = false;
 static bool join_sent = false;
 static bool send_join = false;
+static bool joined_network = false;
 
 static uint8_t resp_buff[BUFFER_SIZE];
+static uint8_t send_buff[40];
 static volatile bool uWait = true;
 int frame_index = 0;
 
@@ -404,10 +406,10 @@ void read_ncp_data()
 			if (resp_buff[4] == 0x1C) {
 				send_join = true;
 			}
-//			else if (resp_buff[4] == 0x18) {
-//				if (resp_buff[5] == 0x00)
-//					send_join = true;
-//			}
+			else if (resp_buff[4] == 0x19) {
+				if (resp_buff[5] == 0x90)
+					joined_network = true;
+			}
 		}
 		else if (resp_spi_byte == 0x00) {
 			spi_write(NCP_SPI, ff_buff, pcs, 0);
@@ -521,6 +523,7 @@ enum ezsp_frame_id
 	SPI_BYTE = 0xFE,
 	PROTOCOL_VERSION = 0x00,
 	INITIAL_SECURITY_STATE = 0x68,
+	GET_SECURITY_STATE = 0x69,
 	NETWORK_INIT = 0x17,
 	GET_NETWORK_PARAMS = 0x28,
 	FORM_NETWORK = 0x1E,
@@ -565,6 +568,10 @@ int main(void)
 	spi_enable(NCP_SPI);
 
 	uint8_t ext_panid[] = { 0x03, 0x05, 0x09, 0x03, 0x09, 0x02, 0x19, 0x89 };
+	uint8_t preconfiguredkey[] = { 0x03, 0x03, 0x03, 0x03, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x19, 0x88, };
+	uint8_t networkKey[] = { 0x03, 0x03, 0x03, 0x03, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x01, 0x19, 0x73, };
+	uint8_t hello_world[] = { 'H', 'E', 'L', 'L', 'O', 'W', 'O', 'R', 'L', 'D' };
+	//uint8_t hello_world[] = {  0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA };
 
 	version_command.header.sequence_byte = 0x00;
 	version_command.header.control_byte = 0x00;
@@ -575,19 +582,22 @@ int main(void)
 	initial_security_state.header.control_byte = 0x00;
 	initial_security_state.header.frame_id = INITIAL_SECURITY_STATE;
 #ifdef COORDINATOR
-	initial_security_state.bitmask = 0x0208; //0x0008;
-	initial_security_state.preconfigured_key = 0x0030;
-	initial_security_state.network_key = 0x0040;
+	initial_security_state.bitmask = 0x0308; //0x0008;
+	memcpy(initial_security_state.preconfigured_key, preconfiguredkey, 16);
+	memcpy(initial_security_state.network_key, networkKey, 16);
 	initial_security_state.sequence_number = 0x00;
 	initial_security_state.trust_center_eui64 = 0x00000000;
 #else
-	initial_security_state.bitmask = 0x0B00; //0x0100;
-	initial_security_state.preconfigured_key = 0xAAD1;
-	initial_security_state.network_key = 0xA7B7;
+	initial_security_state.bitmask = 0x0300; //0x0100;
+	memcpy(initial_security_state.preconfigured_key, preconfiguredkey, 16);
+	memcpy(initial_security_state.network_key, networkKey, 16);
 	initial_security_state.sequence_number = 0x00;
 	initial_security_state.trust_center_eui64 = 0x00000000;
 #endif
 
+	get_current_security_state.header.sequence_byte = 0x00;
+	get_current_security_state.header.control_byte = 0x00;
+	get_current_security_state.header.frame_id = GET_SECURITY_STATE;
 //	set_channel_cmd.header.sequence_byte = 0x00;
 //	set_channel_cmd.header.control_byte = 0x00;
 //	set_channel_cmd.header.frame_id = 0x8A;
@@ -647,21 +657,64 @@ int main(void)
 	callback_cmd.header.control_byte = 0x00;
 	callback_cmd.header.frame_id = CALLBACK_CMD;
 
+	send_broadcast.header.sequence_byte = 0x00;
+	send_broadcast.header.control_byte = 0x00;
+	send_broadcast.header.frame_id = 0x36;
+	send_broadcast.destination_node = 0x0000;
+	send_broadcast.apps_frame.profile_id = 0x0000;
+	send_broadcast.apps_frame.cluster_id = 0x0000;
+	send_broadcast.apps_frame.source_endpoint = 0x01;
+	send_broadcast.apps_frame.destination_endpoint = 0x00;
+	send_broadcast.apps_frame.apps_options.options_masks = 0x0000;
+	send_broadcast.apps_frame.group_id = 0xFFFF;
+	send_broadcast.apps_frame.sequence = 0x00;
+	send_broadcast.radius = 0x00;
+	send_broadcast.message_tag = 0x01;
+	send_broadcast.message_length = 0x0B;
+	memcpy(send_broadcast.message, hello_world, 10);
+
+	send_unicast.header.sequence_byte = 0x00;
+	send_unicast.header.control_byte = 0x00;
+	send_unicast.header.frame_id = 0x34;
+	send_unicast.message_type = 0x00;
+	send_unicast.destination = 0x0000;
+	send_unicast.apps_frame.profile_id = 0xC035;
+	send_unicast.apps_frame.cluster_id = 0x0001;
+	send_unicast.apps_frame.source_endpoint = 0x01;
+	send_unicast.apps_frame.destination_endpoint = 0x01;
+	send_unicast.apps_frame.apps_options.options_masks = 0x0000;
+	send_unicast.apps_frame.group_id = 0x0000;
+	send_unicast.apps_frame.sequence = 0x00;
+	send_unicast.message_tag = 0x01;
+	send_unicast.message_length = 0x0B;
+	memcpy(send_unicast.message, hello_world, 10);
+
 	delay_ms(5000);
 	ncp_init_procedure();
 	delay_ms(10);
 	send_ezsp_msg(SPI_BYTE, sizeof(version_command_t), &version_command);
 	delay_ms(1000);
 
+//	memcpy(send_buff, (uint8_t*) &send_unicast, sizeof(send_unicast_t));
+//
+//	printf("\r\nInitial security state\r\n");
+//	for (int j = 0; j < sizeof(send_unicast_t); j++) {
+//		printf("0x%02x, ", send_buff[j]);
+//	}
+
 #ifdef COORDINATOR
 //			send_ezsp_msg(0xFE, sizeof(network_init_cmd_t), &network_init_cmd);
 //			delay_ms(10);
+	//memcpy(send_buff, (uint8_t*) &initial_security_state, sizeof(initial_security_state_t));
+
+//	printf("\r\nInitial security state\r\n");
+//	for (int j = 0; j < sizeof(initial_security_state_t); j++) {
+//		printf("0x%02x, ", send_buff[j]);
+//	}
 	send_ezsp_msg(0xFE, sizeof(initial_security_state_t), &initial_security_state);
-	delay_ms(10);
 	send_ezsp_msg(0xFE, sizeof(form_network_t), &form_network);
-	delay_ms(10);
 	send_ezsp_msg(0xFE, sizeof(permit_joining_t), &permit_joining);
-	delay_ms(10);
+	send_ezsp_msg(0xFE, sizeof(get_current_security_state_t), &get_current_security_state);
 #endif
 #ifdef ROUTER
 	send_ezsp_msg(SPI_BYTE, sizeof(start_scan_t), &start_scan);
@@ -680,12 +733,15 @@ int main(void)
 			send_ezsp_msg(SPI_BYTE, sizeof(initial_security_state_t), &initial_security_state);
 			send_ezsp_msg(SPI_BYTE, sizeof(join_network_t), &join_network);
 			while (uWait)
-					;
+				;
 			join_sent = true;
 			send_join = false;
 		}
 		else {
 			send_ezsp_msg(SPI_BYTE, sizeof(callback_cmd_t), &callback_cmd);
+			if (joined_network)
+				send_ezsp_msg(SPI_BYTE, sizeof(send_unicast_t), &send_unicast);
+
 			delay_ms(1000);
 		}
 
